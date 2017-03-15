@@ -1,0 +1,319 @@
+<html>
+
+<head>
+	<!-- Latest compiled and minified CSS -->
+	<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u"
+	 crossorigin="anonymous">
+	<script src="https://www.gstatic.com/firebasejs/3.6.10/firebase.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.5.0/Chart.min.js"></script>
+	<script>
+		// Initialize Firebase
+		// TODO: Replace with your project's customized code snippet
+		var config = {
+			// apiKey: "AIzaSyBNfPVe3fnorVRQ9PWOQkVX-4Z0gIAq7QU",
+			// authDomain: "testing-b8d0d.firebaseapp.com",
+			// databaseURL: "https://testing-b8d0d.firebaseio.com",
+			// storageBucket: "testing-b8d0d.appspot.com",
+			// messagingSenderId: "653920648672"
+			apiKey: "AIzaSyD8XPXmaUL-ERsngMC9PjO_WTwcSaMgKak",
+			authDomain: "chicken-firebase.firebaseapp.com",
+			databaseURL: "https://chicken-firebase.firebaseio.com",
+			storageBucket: "chicken-firebase.appspot.com",
+			messagingSenderId: "40241263992"
+		};
+		firebase.initializeApp(config);
+	</script>
+</head>
+
+<body>
+	<center>
+		<h1> Chicken at Track </h1>
+	</center>
+	<div class="container">
+		<div class="col-md-6">
+			<select id="ddlViewBy" class="dropup">
+				<option value="10">Last 10 hour</option>
+				<option value="15">Last 15 hour</option>
+				<option value="20">Last 20 hour</option>
+				<option value="24">Last 1 day</option>
+				<option value="72">Last 3 day</option>
+				<option value="168">Last 7 day</option>
+			</select>
+			<button type="button" onclick="show()">Query</button>
+		</div>
+		<div class="col-md-6">
+			Node 1: <input type="checkbox" id="node1" checked> Node 2: <input type="checkbox" id="node2" checked> Node 3: <input type="checkbox"
+			 id="node3" checked>
+			<button type="button" onclick="plot()">Show</button>
+		</div>
+	</div>
+	<div class="container">
+		<canvas id="myChart" width="800" height="400">Calcurating...</canvas>
+	</div>
+	<p></p>
+	<p></p>
+	<div class="container">
+		query date (Freeze time at 14-3-17)
+		<p id="show"></p>
+		<p id="showhour"></p>
+	</div>
+
+	<script>
+		var hour;
+		var viewLastHour;
+		var ctx = document.getElementById("myChart");
+		var myLineChart
+		var datas = {
+			labels: [],
+			datasets: [{
+				label: "Node 1",
+				fill: false,
+				lineTension: 0.1,
+				backgroundColor: "rgba(75,192,192,0.4)",
+				borderColor: "rgba(75,192,192,1)",
+				borderCapStyle: 'butt',
+				borderDash: [],
+				borderDashOffset: 0.0,
+				borderJoinStyle: 'miter',
+				pointBorderColor: "rgba(75,192,192,1)",
+				pointBackgroundColor: "#fff",
+				pointBorderWidth: 1,
+				pointHoverRadius: 5,
+				pointHoverBackgroundColor: "rgba(75,192,192,1)",
+				pointHoverBorderColor: "rgba(220,220,220,1)",
+				pointHoverBorderWidth: 2,
+				pointRadius: 1,
+				pointHitRadius: 10,
+				data: [],
+				spanGaps: false,
+				hidden: false
+			}, {
+				label: "Node 2",
+				fill: false,
+				lineTension: 0.1,
+				backgroundColor: "rgba(192,192,75,0.4)",
+				borderColor: "rgba(192,192,75,1)",
+				borderCapStyle: 'butt',
+				borderDash: [],
+				borderDashOffset: 0.0,
+				borderJoinStyle: 'miter',
+				pointBorderColor: "rgba(192,192,75,1)",
+				pointBackgroundColor: "#fff",
+				pointBorderWidth: 1,
+				pointHoverRadius: 5,
+				pointHoverBackgroundColor: "rgba(192,192,75,1)",
+				pointHoverBorderColor: "rgba(220,220,220,1)",
+				pointHoverBorderWidth: 2,
+				pointRadius: 1,
+				pointHitRadius: 10,
+				data: [],
+				spanGaps: false,
+				hidden: false
+			}, {
+				label: "Node 3",
+				fill: false,
+				lineTension: 0.1,
+				backgroundColor: "rgba(192,75,192,0.4)",
+				borderColor: "rgba(192,75,192,1)",
+				borderCapStyle: 'butt',
+				borderDash: [],
+				borderDashOffset: 0.0,
+				borderJoinStyle: 'miter',
+				pointBorderColor: "rgba(192,75,192,1)",
+				pointBackgroundColor: "#fff",
+				pointBorderWidth: 1,
+				pointHoverRadius: 5,
+				pointHoverBackgroundColor: "rgba(192,75,192,1)",
+				pointHoverBorderColor: "rgba(220,220,220,1)",
+				pointHoverBorderWidth: 2,
+				pointRadius: 1,
+				pointHitRadius: 10,
+				data: [],
+				spanGaps: false,
+				hidden: false
+			}]
+		}
+
+		function gotTime(viewLastHour, date) {
+			if (Object.prototype.toString.call(date) !== "[object Date]") {
+				console.log(Object.prototype.toString.call(date));
+				return;
+			}
+			var dateList = [];
+			var queryDay = Math.ceil(viewLastHour / 24.0);
+			console.log(queryDay);
+			//it may not exact time but ok for hour
+			for (let i = 0; i <= queryDay; i++) {
+				dateList.push(`${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`);
+				date.setDate(date.getDate() - 1)
+			}
+			console.log(dateList);
+			if (hour !== date.getHours() || hour) {
+				hour = date.getHours();
+			}
+			document.getElementById("show").innerHTML = `${dateList}`;
+			console.log(dateList);
+			return dateList;
+		}
+
+		function show() {
+			var d = new Date(1489469788000);
+			var list = document.getElementById("ddlViewBy");
+			viewLastHour = parseInt(list.options[list.selectedIndex].value);
+			var dateList = gotTime(viewLastHour, d);
+			var startHour = hour - viewLastHour;
+			var queryDay = dateList.length;
+			document.getElementById("showhour").innerHTML = `watch ${viewLastHour} hour`;
+			var remainingHour = ((viewLastHour - hour) % 24) - 1;
+			return getData("chicken1", dateList)
+				.then(function (data) {// Nodet 1
+					console.log("dataaaaaaaaaaa");
+					console.log(data);
+					datas.datasets[0].data = [];
+					datas.labels = [];
+					if (startHour < 0) {
+						console.log(remainingHour);
+						for (let i = 24 - remainingHour; i < 24; i++) {
+							datas.labels.push(dateList[queryDay - 1] + " h" + i);
+							let temp = (data[queryDay - 1]["h" + i]) ? data[queryDay - 1]["h" + i].temp : null;
+							datas.datasets[0].data.push(temp);
+						}
+						for (let i = queryDay - 2; i > 0; i--) {//exclude last.
+							for (let j = 0; j < 24; j++) {
+								datas.labels.push(dateList[i] + " h" + j);
+								let temp = (data[i]["h" + j]) ? data[i]["h" + j].temp : null;
+								datas.datasets[0].data.push(temp);
+							}
+						}
+						for (let i = 0; i <= hour; i++) {
+							datas.labels.push(dateList[0] + " h" + i);
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[0].data.push(temp);
+						}
+					} else {
+						for (let i = startHour; i <= hour; i++) {
+							datas.labels.push("h" + i);
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[0].data.push(temp);
+						}
+					}
+					return getData("chicken2", dateList);
+				}).then(function (data) {// Nodet 2
+					datas.datasets[1].data = [];
+					console.log(data);
+					if (startHour < 0) {
+						for (let i = 24 - remainingHour; i < 24; i++) {
+							let temp = (data[queryDay - 1]["h" + i]) ? data[queryDay - 1]["h" + i].temp : null;
+							datas.datasets[1].data.push(temp);
+						}
+						for (let i = queryDay - 2; i > 0; i--) {//exclude last.
+							for (let j = 0; j < 24; j++) {
+								let temp = (data[i]["h" + j]) ? data[i]["h" + j].temp : null;
+								datas.datasets[1].data.push(temp);
+							}
+						}
+						for (let i = 0; i <= hour; i++) {
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[1].data.push(temp);
+						}
+
+					} else {
+						for (let i = startHour; i <= hour; i++) {
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[1].data.push(temp);
+						}
+					}
+					return getData("chicken3", dateList);
+				}).then(function (data) {// Nodet 3
+					console.log(data);
+					datas.datasets[2].data = [];
+					if (startHour < 0) {
+						for (let i = 24 - remainingHour; i < 24; i++) {
+							let temp = (data[queryDay - 1]["h" + i]) ? data[queryDay - 1]["h" + i].temp : null;
+							datas.datasets[2].data.push(temp);
+						}
+						for (let i = queryDay - 2; i > 0; i--) {//exclude last.
+							for (let j = 0; j < 24; j++) {
+								let temp = (data[i]["h" + j]) ? data[i]["h" + j].temp : null;
+								datas.datasets[2].data.push(temp);
+							}
+						}
+						for (let i = 0; i <= hour; i++) {
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[2].data.push(temp);
+						}
+
+					} else {
+						for (let i = startHour; i <= hour; i++) {
+							let temp = (data[0]["h" + i]) ? data[0]["h" + i].temp : null;
+							datas.datasets[2].data.push(temp);
+						}
+					}
+				}).then(function () {
+					console.log(datas);
+					plot();
+				})
+		}
+		show();
+
+		function selectNode() {
+			datas.datasets[0].hidden = !document.getElementById("node1").checked
+			datas.datasets[1].hidden = !document.getElementById("node2").checked
+			datas.datasets[2].hidden = !document.getElementById("node3").checked
+		}
+
+		function gotData(path) {
+			return new Promise(function (res, rej) {
+				console.log('querying ' + path)
+				firebase.database().ref(path).on('value', function (snapshot) {
+					if (snapshot.val()) {
+						res(snapshot.val());
+					} else {
+						res({});
+					}
+				});
+			});
+		}
+		function getData(nodeName, dateList) {
+			var dataList = [];
+			for (let i = 0; i < dateList.length; i++) {
+				dataList.push(gotData(nodeName + "/" + dateList[i]));
+			}
+			return Promise.all(dataList);
+		}
+
+		function plot(newData) {
+			if (myLineChart)
+				myLineChart.destroy();
+			selectNode();
+			myLineChart = new Chart(ctx, {
+				type: 'line',
+				data: datas,
+				options: {
+					layout: {
+						padding: 40
+					},
+					deferred: {           // enabled by default
+						xOffset: 150,     // defer until 150px of the canvas width are inside the viewport
+						yOffset: '50%',   // defer until 50% of the canvas height are inside the viewport
+						delay: 500        // delay of 500 ms after the canvas is considered inside the viewport
+					},
+					scales: {
+						yAxes: [{
+							display: true,
+							ticks: {
+								suggestedMin: 20,    // minimum will be 0, unless there is a lower value.
+								suggestedMax: 40,
+								// OR //
+								//beginAtZero: true   // minimum value will be 0.
+							}
+						}]
+					}
+				}
+			});
+		}
+	</script>
+</body>
+
+
+</html>
